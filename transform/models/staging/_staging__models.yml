@@ -1,0 +1,146 @@
+version: 2
+
+models:
+  - name: stg_crm__accounts
+    description: >
+      CRM accounts, one row per account per nightly snapshot. Trimmed, typed and
+      deduplicated -- three accounts are double-listed in every source snapshot.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [account_id, snapshot_date]
+    columns:
+      - name: account_id
+        description: Primary key of the account, stable across snapshots.
+        data_tests: [not_null]
+      - name: snapshot_date
+        description: The night this row was exported. Second half of the grain.
+        data_tests: [not_null]
+      - name: store_number
+        description: >
+          Join key to the Iowa market data. NULL for ~40% of accounts, all of
+          them Prospects -- those accounts cannot be scored on market data.
+      - name: status
+        data_tests:
+          - accepted_values:
+              values: ["Active", "Prospect"]
+      - name: segment
+        data_tests:
+          - accepted_values:
+              values:
+                - Premium Off-Trade
+                - Independent Specialist
+                - Grocery Multiple
+                - Wholesale Club
+      - name: annual_target_gbp
+        description: Contracted annual target, GBP. NULL for Prospects (no contract).
+        data_tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              inclusive: true
+      - name: contract_start_date
+        description: NULL for Prospects. Parsed from dd/mm/yyyy.
+
+  - name: stg_crm__opportunities
+    description: CRM pipeline, one row per opportunity per nightly snapshot.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [opportunity_id, snapshot_date]
+    columns:
+      - name: opportunity_id
+        data_tests: [not_null]
+      - name: snapshot_date
+        data_tests: [not_null]
+      - name: account_id
+        description: Foreign key to stg_crm__accounts.
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('stg_crm__accounts')
+              field: account_id
+      - name: product_sku
+        data_tests:
+          - relationships:
+              to: ref('stg_crm__products')
+              field: sku_id
+      - name: stage
+        data_tests:
+          - accepted_values:
+              values:
+                - Prospecting
+                - Qualification
+                - Proposal Sent
+                - Negotiation
+                - Closed Won
+                - Closed Lost
+      - name: stage_group
+        description: Collapses the six stages to won / lost / open.
+        data_tests:
+          - accepted_values:
+              values: ["won", "lost", "open"]
+      - name: value_gbp
+        data_tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              inclusive: true
+
+  - name: stg_crm__contacts
+    description: CRM contacts, one row per contact per nightly snapshot.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [contact_id, snapshot_date]
+    columns:
+      - name: contact_id
+        data_tests: [not_null]
+      - name: snapshot_date
+        data_tests: [not_null]
+      - name: account_id
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('stg_crm__accounts')
+              field: account_id
+
+  - name: stg_crm__products
+    description: Thameswood's own catalogue. Five SKUs, reloaded wholesale each run.
+    columns:
+      - name: sku_id
+        data_tests: [unique, not_null]
+      - name: abv_pct
+        description: >
+          41.4-47% across the range. Underpins the decision to exclude Iowa's
+          AMERICAN SLOE GINS (a ~15-25% liqueur) from the gin category set.
+      - name: list_price_gbp
+        data_tests: [not_null]
+
+  - name: stg_iowa__store_category_yearly
+    description: >
+      Iowa wholesale purchases, pre-aggregated to store x year x category group.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [store_number, year, cat_group, gin_category]
+    columns:
+      - name: store_number
+        description: Join key to stg_crm__accounts.store_number.
+        data_tests: [not_null]
+      - name: cat_group
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ["GIN_PREMIUM", "GIN_OTHER", "NON_GIN"]
+      - name: gin_category
+        description: >
+          The specific Iowa category, for gin rows only. NULL on NON_GIN rows by
+          design -- all non-gin purchases collapse into a single row per store
+          and year.
+        data_tests:
+          - accepted_values:
+              values:
+                - IMPORTED DRY GINS
+                - IMPORTED GINS
+                - AMERICAN DRY GINS
+                - FLAVORED GINS
+      - name: year
+        data_tests:
+          - dbt_utils.accepted_range:
+              min_value: 2021
+              inclusive: true
