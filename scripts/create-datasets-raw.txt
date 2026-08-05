@@ -1,0 +1,3 @@
+bq --location=US mk --dataset gin-accounts-recommendation:raw_iowa
+bq --location=US mk --dataset gin-accounts-recommendation:raw_crm
+bq --location=US mk --dataset gin-accounts-recommendation:analytics
