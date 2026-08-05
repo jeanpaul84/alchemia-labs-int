@@ -1,0 +1,22 @@
+# Checked in deliberately: it contains no secrets, only env var references.
+# dbt looks for profiles.yml in the current working directory before falling
+# back to ~/.dbt, so running dbt from this folder picks this file up.
+#
+# Both env vars come from ../.env -- the same ones the Python extract scripts
+# read, so there is exactly one place to configure the project.
+
+thameswood:
+  target: dev
+  outputs:
+    dev:
+      type: bigquery
+      method: service-account
+      keyfile: "{{ env_var('GOOGLE_APPLICATION_CREDENTIALS') }}"
+      project: "{{ env_var('BQ_PROJECT_ID') }}"
+      dataset: analytics
+      # The public source dataset is US multi-region and BigQuery cannot join
+      # across locations, so everything we build has to be US too.
+      location: US
+      threads: 4
+      priority: interactive
+      job_retries: 1

@@ -1,0 +1,20 @@
+name: thameswood
+version: "1.0.0"
+config-version: 2
+
+profile: thameswood
+
+model-paths: ["models"]
+macro-paths: ["macros"]
+test-paths: ["tests"]
+target-path: "target"
+clean-targets: ["target", "dbt_packages"]
+
+models:
+  thameswood:
+    staging:
+      # Views: the staging layer is a typed, cleaned lens over raw. It holds no
+      # data of its own, so there is nothing to store and nothing to refresh.
+      +materialized: view
+    marts:
+      +materialized: table
