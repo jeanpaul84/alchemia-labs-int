@@ -21,3 +21,7 @@ scratch/
 # downloaded source data — the pipeline re-fetches it, no need to commit 540 CSVs
 data/crm/
 data/product_catalogue/
+data/
+ 
+ 
+transform/.user.yml
