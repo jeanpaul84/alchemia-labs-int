@@ -1,3 +1,23 @@
 # credentials — never commit, just for safety
 thameswood-sa-key.json
 *-sa-key.json
+.env
+
+# python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# dbt
+target/
+dbt_packages/
+logs/
+
+# local scratch — not part of the submission
+.DS_Store
+scratch/
+
+# downloaded source data — the pipeline re-fetches it, no need to commit 540 CSVs
+data/crm/
+data/product_catalogue/
