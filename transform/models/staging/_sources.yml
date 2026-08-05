@@ -1,0 +1,33 @@
+version: 2
+
+sources:
+  - name: raw_crm
+    description: >
+      Client CRM nightly full snapshots, landed by extract/extract_crm.py.
+      Every source column is STRING and byte-faithful to the CSV: the raw layer
+      never fails on a data quality problem, it defers it to staging where a
+      test can catch it.
+    database: "{{ env_var('BQ_PROJECT_ID') }}"
+    schema: raw_crm
+    tables:
+      - name: accounts_snapshots
+        description: "One full snapshot of the account book per night. Grain: account_id x snapshot_date."
+      - name: contacts_snapshots
+        description: "One full snapshot of contacts per night. Grain: contact_id x snapshot_date."
+      - name: opportunities_snapshots
+        description: "One full snapshot of the pipeline per night. Grain: opportunity_id x snapshot_date."
+      - name: product_catalogue
+        description: >
+          Thameswood's own product list. Parquet, so it arrives already typed and
+          is reloaded wholesale each run rather than snapshotted.
+
+  - name: raw_iowa
+    description: >
+      bigquery-public-data.iowa_liquor_sales.sales, pre-aggregated by
+      extract/extract_market.py. 34M order lines rolled down to 31k rows so that
+      nothing downstream ever has to touch the large table again.
+    database: "{{ env_var('BQ_PROJECT_ID') }}"
+    schema: raw_iowa
+    tables:
+      - name: store_category_yearly
+        description: Grain -- store_number x year x cat_group x gin_category.
