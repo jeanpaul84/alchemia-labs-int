@@ -45,7 +45,7 @@ models:
         data_tests: [unique, not_null]
       - name: premium_gin_dollars
         description: >
-          The V1 ranking measure. Net imported-gin dollars over the window.
+          The V1 ranking measure. Net premium-tier gin dollars over the window.
         data_tests:
           - not_null
       - name: premium_share_of_gin

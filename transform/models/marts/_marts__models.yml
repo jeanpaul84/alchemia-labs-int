@@ -46,12 +46,14 @@ models:
       - name: evidence_tier
         description: >
           The primary sort key -- what the market data proves, strongest first.
-          1 = buys imported gin at or above the premium_gin_materiality_floor
-          var; 2 = gin demand but no material imported volume (either token
-          imported gin below the floor, or none at all -- rank_rationale tells
-          them apart); 3 = matched but no gin traction; 4 = no market match.
-          The floor exists because without it a $65 imported-gin purchase
-          outranks $1,116 of gin spend on category alone.
+          1 = buys premium-tier gin at or above the
+          premium_gin_materiality_floor var; 2 = gin demand but no material
+          premium volume (either token premium gin below the floor, or none at
+          all -- rank_rationale tells them apart); 3 = matched but no gin
+          traction; 4 = no market match. The floor exists because without it a
+          $65 premium-gin purchase outranks $1,116 of gin spend on category
+          alone. "Premium" is a PRICE tier, not an origin: it includes flavoured
+          gin, which is not necessarily imported.
         data_tests:
           - not_null
           - accepted_values:
@@ -82,9 +84,10 @@ models:
 
       - name: premium_gin_dollars
         description: >
-          Imported gin purchased over the scoring window. NULL where the account
-          has no matched Iowa store -- deliberately not zero-filled, because
-          "no market data" and "bought no imported gin" are different facts.
+          Premium-tier gin purchased over the scoring window. NULL where the
+          account has no matched Iowa store -- deliberately not zero-filled,
+          because "no market data" and "bought no premium gin" are different
+          facts.
         data_tests:
           - dbt_utils.accepted_range:
               min_value: 0

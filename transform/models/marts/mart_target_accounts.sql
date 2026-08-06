@@ -18,14 +18,14 @@
       1. evidence_tier        -- what the third-party market data PROVES about
                                  this account, best evidence first. An account we
                                  can match to a real Iowa store that is actively
-                                 buying imported gin is a better bet than one we
-                                 can only describe from our own CRM.
+                                 buying premium-tier gin is a better bet than
+                                 one we can only describe from our own CRM.
       2. relationship_penalty -- Closed Lost sits at the BOTTOM OF ITS OWN TIER.
                                  A previous loss is harder work than a live
-                                 prospect, but it is not worthless: a lost account
-                                 that demonstrably buys imported gin still beats
-                                 an open prospect with no gin traction at all.
-                                 Demoted, not deleted.
+                                 prospect, but it is not worthless: a lost
+                                 account that demonstrably buys premium-tier gin
+                                 still beats an open prospect with no gin
+                                 traction at all. Demoted, not deleted.
       3. tier_measure         -- the dollar measure appropriate to that tier,
                                  descending. Because evidence_tier sorts first,
                                  this column is only ever compared LIKE FOR LIKE
@@ -38,11 +38,11 @@
     The reasoning behind the tiers, stated plainly so it can be challenged:
       * cat_group decides which dollars COUNT. Ranking on an account's total
         liquor spend would just surface the biggest shops on the client's list --
-        something they already know, for free. Ranking on IMPORTED gin says this
-        account's customers have already proven they will pay premium prices for
-        exactly this product.
+        something they already know, for free. Ranking on PREMIUM-TIER gin says
+        this account's customers have already proven they will pay premium
+        prices for exactly this product.
       * Tier 1 requires that proof to be MATERIAL. Without a floor, an account
-        that bought $65 of imported gin in sixteen months -- two bottles --
+        that bought $65 of premium-tier gin in sixteen months -- two bottles --
         outranks one with $1,116 of gin spend, purely because the $65 landed in
         the right category. That is the tier structure being taken literally
         past the point where the evidence means anything. The floor is where
@@ -155,8 +155,8 @@ classified as (
 
         -- What the market data proves about this account, strongest first.
         -- Note the floor on tier 1 and the plain `> 0` on tier 2: an account
-        -- with token imported gin fails the first test but passes the second,
-        -- so it lands in tier 2 rather than falling out of the ranking.
+        -- with token premium-tier gin fails the first test but passes the
+        -- second, so it lands in tier 2 rather than falling out of the ranking.
         case
             when not has_market_match                        then 4
             when coalesce(premium_gin_dollars, 0) >= {{ floor }} then 1
@@ -199,13 +199,17 @@ measured as (
         end as tier_measure,
 
         -- Kept 1:1 with evidence_tier so it can be grouped on directly. The
-        -- sub-distinction inside tier 2 -- token imported gin vs none at all --
+        -- sub-distinction inside tier 2 -- token premium gin vs none at all --
         -- lives in rank_rationale instead, where it does not break grouping.
         -- The floor is interpolated, not typed, so the label cannot drift from
         -- the var that produced it.
+        -- "premium", not "imported": the tier is defined on PRICE, and it now
+        -- includes flavoured gin, which sells at the imported price but is not
+        -- necessarily imported. Calling it "imported" would misdescribe the
+        -- rule to anyone reading the ranked list.
         case evidence_tier
-            when 1 then 'buys imported gin at scale (>= ${{ floor }})'
-            when 2 then 'gin demand, below the ${{ floor }} imported-gin floor'
+            when 1 then 'buys premium gin at scale (>= ${{ floor }})'
+            when 2 then 'gin demand, below the ${{ floor }} premium-gin floor'
             when 3 then 'no gin traction'
             else        'no market match -- CRM evidence only'
         end as evidence_tier_label
@@ -299,14 +303,14 @@ select
                 '% of its gin spend'
             )
             -- The one place the two flavours of tier 2 are told apart: an
-            -- account with token imported gin is a different conversation from
+            -- account with token premium gin is a different conversation from
             -- one with none, even though they rank on the same measure.
             when 2 then concat(
                 '$', format("%'.0f", coalesce(total_gin_dollars, 0)), ' gin spend, ',
                 if(coalesce(premium_gin_dollars, 0) > 0,
                    concat('but only $', format("%'.0f", premium_gin_dollars),
-                          ' of it imported -- below the ${{ floor }} floor'),
-                   'none of it imported -- switch target')
+                          ' of it premium tier -- below the ${{ floor }} floor'),
+                   'none of it premium tier -- switch target')
             )
             when 3 then concat(
                 '$', format("%'.0f", coalesce(total_dollars, 0)),
