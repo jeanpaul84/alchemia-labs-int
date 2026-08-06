@@ -1,0 +1,57 @@
+version: 2
+
+models:
+  - name: int_crm__accounts_current
+    description: >
+      The CRM as of the latest snapshot, one row per account, with each account
+      classified into a crm_state. States the facts; the mart applies the policy
+      about which states are approachable.
+    columns:
+      - name: account_id
+        data_tests: [unique, not_null]
+      - name: store_number
+        description: >
+          Join key to the market data. NULL for 40 accounts, all open Prospects.
+          Unique where present -- if two accounts ever shared a store number the
+          mart's left join would duplicate that store in the ranked list.
+        data_tests:
+          - unique
+      - name: crm_state
+        description: >
+          closed_won (already a customer), open (live pipeline), closed_lost
+          (said no), no_opportunity. Precedence order, not frequency order.
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ["closed_won", "open", "closed_lost", "no_opportunity"]
+      - name: crm_as_of_date
+        description: Snapshot this row reflects. Same date for every row.
+        data_tests: [not_null]
+
+  - name: int_crm__primary_contact
+    description: One contact per account -- the person a rep should call.
+    columns:
+      - name: account_id
+        data_tests: [unique, not_null]
+      - name: contact_name
+        data_tests: [not_null]
+
+  - name: int_iowa__store_recent_sales
+    description: >
+      Market data pivoted from long to wide over the scoring window
+      (var market_window_years). One row per store, cat_group as columns.
+    columns:
+      - name: store_number
+        data_tests: [unique, not_null]
+      - name: premium_gin_dollars
+        description: >
+          The V1 ranking measure. Net imported-gin dollars over the window.
+        data_tests:
+          - not_null
+      - name: premium_share_of_gin
+        description: Descriptive only -- does not feed the ranking in V1.
+        data_tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 1
+              inclusive: true

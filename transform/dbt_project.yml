@@ -16,5 +16,31 @@ models:
       # Views: the staging layer is a typed, cleaned lens over raw. It holds no
       # data of its own, so there is nothing to store and nothing to refresh.
       +materialized: view
+    intermediate:
+      # Also views. These are working steps, not deliverables -- nothing outside
+      # the project should query them, so there is no reason to pay to store
+      # them. Kept as models rather than CTEs so each step can be tested.
+      +materialized: view
     marts:
       +materialized: table
+
+# Every business decision that a non-engineer might reasonably want to change
+# lives here rather than buried in SQL. Each one is overridable at run time:
+#   dbt build --vars '{exclude_closed_lost: false}'
+vars:
+  # The scoring window. 2025 + 2026 is Jan-2025 .. Apr-2026 -- 16 months, and
+  # the SAME 16 months for every store, which is what makes it valid to rank on.
+  # It is NOT valid for year-on-year comparison: 2026 holds four months and 2025
+  # holds twelve. Momentum needs month grain in extract_market.py first.
+  market_window_years: [2025, 2026]
+
+  # Closed Won is always excluded -- they are already customers, there is
+  # nothing to "approach". Closed Lost is a judgement call: the client has a
+  # bad history there and rep time is expensive. Flip to false to resurface
+  # old losses as re-approach candidates.
+  exclude_closed_lost: true
+
+  # How many rows get flagged as the deliverable. The mart scores every
+  # eligible store; this only sets the is_top_target flag, so answering
+  # "who is number 26?" never requires a rebuild.
+  target_list_size: 25

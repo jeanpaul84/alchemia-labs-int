@@ -1,0 +1,37 @@
+version: 2
+
+models:
+  - name: mart_target_accounts
+    description: >
+      The deliverable. Every approachable Iowa gin-selling store, ranked by
+      premium gin spend over 2025-2026. is_top_target flags the top 25; the
+      full eligible universe is stored so follow-up questions need no rebuild.
+    columns:
+      - name: target_rank
+        description: 1 = approach first. Dense and unique by construction.
+        data_tests: [unique, not_null]
+      - name: store_number
+        description: One row per store.
+        data_tests: [unique, not_null]
+      - name: premium_gin_dollars
+        description: >
+          The ranking measure. Always > 0 -- a store with no premium gin
+          purchases in the window is not in the universe.
+        data_tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              inclusive: false
+      - name: target_type
+        description: >
+          net_new (no CRM record -- needs sourcing) or known_prospect (open
+          opportunity, a rep already owns it). Decides who does the work.
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ["net_new", "known_prospect"]
+      - name: rank_rationale
+        description: Human-readable reason this store ranks where it does.
+        data_tests: [not_null]
+      - name: is_top_target
+        data_tests: [not_null]
