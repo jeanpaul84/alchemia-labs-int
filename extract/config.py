@@ -48,28 +48,59 @@ MAX_QUERY_BYTES = 10 * 1024**3  # 10 GB
 # the substring "GIN"). Do NOT use LIKE '%GIN%': it matches
 # "PUERTO RICO & VIRGIN ISLANDS RUM".
 
-# Imported gin -- Thameswood's actual shelf. A store already moving these has
-# proven it can sell a GBP 35 bottle. This is the *fit* signal.
+# The premium price tier -- Thameswood's actual shelf. A store already moving
+# these has proven it can sell a GBP 35 bottle. This is the *fit* signal.
+#
+# Membership is decided on PRICE, measured, not on the word "imported". Average
+# USD per bottle across 2021-2026, straight from the public table:
+#
+#     IMPORTED DRY GINS     $25.41    27.7M    <- premium
+#     FLAVORED GIN          $24.89     4.9M    <- premium (98% of imported)
+#     IMPORTED GINS         $22.13     4.8k    <- premium, but dormant
+#     ---------------------------------------- the gap
+#     AMERICAN DRY GINS      $9.16    17.3M    <- value
+#     AMERICAN SLOE GINS     $8.34     137k    <- value
+#
+# The split is bimodal at ~$25 vs ~$9 with nothing in between, so the tier
+# boundary is a real feature of the market rather than a judgement call.
 GIN_PREMIUM_CATEGORIES = (
     "IMPORTED DRY GINS",
+    # Dormant, not dropped: 13 order lines ever, none since 2022-05-31, so it
+    # contributes nothing to the scoring window. Kept so that a reviewer who
+    # greps for it finds this note instead of assuming it was missed -- and so
+    # the set still covers Thameswood's Contemporary Gin range on paper.
     "IMPORTED GINS",
+    # Moved here from GIN_OTHER on price evidence. Iowa's taxonomy splits on
+    # ORIGIN (imported vs American); Thameswood competes on PRICE, and flavoured
+    # gin sells at essentially the imported price. It is also the only gin
+    # category in Iowa that is growing (+221% 2021-2025 while imported dry fell
+    # 13% and American dry fell 21%), and it is where Thameswood's own
+    # Elderflower Expression (GBP 35, 42% ABV) would be shelved.
+    "FLAVORED GINS",
+    "FLAVORED GIN",  # the spelling that actually occurs post-2021; see aliases
 )
 
-# Domestic and flavoured gin -- real gin demand, but mostly value tier. Useful
-# for sizing total gin appetite. This is the *market size* signal.
+# Domestic value-tier gin -- real gin demand at a third of the price. Useful for
+# sizing total gin appetite, and it is what a tier-2 "switch" conversation is
+# about. This is the *market size* signal, not the fit signal.
 GIN_OTHER_CATEGORIES = (
     "AMERICAN DRY GINS",
-    "FLAVORED GINS",
-    "FLAVORED GIN",  # same category as above, second spelling in the source
 )
 
 # Deliberately excluded:
 #   AMERICAN SLOE GINS            -- a sweetened liqueur (~15-25% ABV), not gin.
-#                                    Thameswood's range is 41.4-47% ABV.
+#                                    Thameswood's range is 41.4-47% ABV. At
+#                                    $8.34/bottle it is also the cheapest gin
+#                                    category in the data -- cheaper than
+#                                    domestic dry gin -- so the exclusion is
+#                                    measured, not just asserted.
 #   PUERTO RICO & VIRGIN ISLANDS RUM -- substring false positive. Rum.
 
 # The source spells one category two ways; collapse them so downstream
-# groupings do not split.
+# groupings do not split. Worth knowing which way round it is: only the SINGULAR
+# occurs from 2021 onwards, so in practice every row is rewritten to the plural
+# rather than the other way about. The alias is kept because the plural does
+# appear in a DISTINCT over the table's full history back to 2012.
 GIN_CATEGORY_ALIASES = {
     "FLAVORED GIN": "FLAVORED GINS",
 }
