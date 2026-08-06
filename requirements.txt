@@ -2,3 +2,10 @@ google-cloud-bigquery>=3.25
 google-cloud-storage>=2.18
 dbt-bigquery>=1.12
 pytest>=8.0
+
+# analysis / reporting notebook
+pandas>=2.2
+matplotlib>=3.9
+db-dtypes>=1.3          # BigQuery DATE/TIME -> pandas dtypes
+ipykernel>=6.29
+nbconvert>=7.16         # jupyter nbconvert --execute, to re-render the notebook
