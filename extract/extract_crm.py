@@ -151,10 +151,10 @@ def sync_feed(bq: bigquery.Client, gcs: storage.Client, feed: str) -> int:
 
     # Clustered on snapshot_date, deliberately not partitioned on it. A BigQuery
     # sandbox forces a 60-day partition expiration on every dataset and will not
-    # let you remove it, and every snapshot here is 94-273 days old -- so date
-    # partitions would be born already expired and swept away moments after a
-    # load job reported success. Clustering gives the same pruning on a feed of
-    # a few MB with none of the expiry semantics.
+    # let you remove it, and this history is months older than that (newest
+    # snapshot ~3 months, oldest ~9) -- so date partitions would be born already
+    # expired and swept away after a load job reported success. Clustering gives
+    # the same pruning on a feed of a few MB with none of the expiry semantics.
     job_config = bigquery.LoadJobConfig(
         schema=build_schema(header),
         write_disposition=bigquery.WriteDisposition.WRITE_APPEND,
