@@ -26,7 +26,7 @@ models:
 
 # Every business decision that a non-engineer might reasonably want to change
 # lives here rather than buried in SQL. Each one is overridable at run time:
-#   dbt build --vars '{exclude_closed_lost: false}'
+#   dbt build --vars '{exclude_closed_lost: true}'
 vars:
   # The scoring window. 2025 + 2026 is Jan-2025 .. Apr-2026 -- 16 months, and
   # the SAME 16 months for every store, which is what makes it valid to rank on.
@@ -35,10 +35,29 @@ vars:
   market_window_years: [2025, 2026]
 
   # Closed Won is always excluded -- they are already customers, there is
-  # nothing to "approach". Closed Lost is a judgement call: the client has a
-  # bad history there and rep time is expensive. Flip to false to resurface
-  # old losses as re-approach candidates.
-  exclude_closed_lost: true
+  # nothing to "approach". Closed Lost is a judgement call, and the client's is
+  # to keep them in the mix rather than drop them: a previous loss is harder
+  # work than a live prospect, but a lost account that demonstrably buys
+  # imported gin is still a better call than an open prospect that buys none.
+  # Flip to true to drop them from the universe entirely instead.
+  exclude_closed_lost: false
+
+  # Materiality floor, USD, on imported gin over the scoring window. Below this,
+  # an account has not proven a premium shelf -- it has proven a curious
+  # customer. $600 is roughly a case and a half of imported gin across sixteen
+  # months, and it is where this CRM's evidence stops being a signal: the
+  # accounts underneath it bought $65-$261, which is a handful of bottles.
+  # Sub-floor accounts are NOT dropped -- they fall to tier 2 and are re-ranked
+  # on their total gin spend, which is the honest measure of what they can move.
+  # Raise it to tighten tier 1, set it to 0 to score any imported gin at all.
+  premium_gin_materiality_floor: 600
+
+  # How that "harder work" is expressed. Closed Lost accounts sort to the bottom
+  # of their own evidence tier -- demoted, not deleted. Deliberately a boolean
+  # and not a numeric weight: a tier demotion is a statement of precedence
+  # anyone can check by eye, whereas "multiply by 0.6" is a number someone has
+  # to justify. Set to false to rank previous losses on market evidence alone.
+  demote_closed_lost: true
 
   # How many rows get flagged as the deliverable. The mart scores every
   # eligible store; this only sets the is_top_target flag, so answering

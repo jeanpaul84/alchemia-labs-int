@@ -3,35 +3,106 @@ version: 2
 models:
   - name: mart_target_accounts
     description: >
-      The deliverable. Every approachable Iowa gin-selling store, ranked by
-      premium gin spend over 2025-2026. is_top_target flags the top 25; the
-      full eligible universe is stored so follow-up questions need no rebuild.
+      The deliverable. Every approachable account in Thameswood's CRM -- one row
+      per account_id -- ranked by what the Iowa market data proves about it.
+      Closed Won is excluded (already customers); Closed Lost is included but
+      demoted within its evidence tier. is_top_target flags the top 25; the full
+      eligible universe is stored so follow-up questions need no rebuild.
     columns:
       - name: target_rank
         description: 1 = approach first. Dense and unique by construction.
         data_tests: [unique, not_null]
-      - name: store_number
-        description: One row per store.
-        data_tests: [unique, not_null]
-      - name: premium_gin_dollars
+
+      - name: account_id
         description: >
-          The ranking measure. Always > 0 -- a store with no premium gin
-          purchases in the window is not in the universe.
+          The grain. One row per CRM account -- the universe is the client's own
+          book, not the Iowa market.
+        data_tests:
+          - unique
+          - not_null
+          # Asserts the scope decision itself: nothing can appear in the ranked
+          # list that is not an account the client already holds. Guards against
+          # the market-side universe creeping back in via a changed join.
+          - relationships:
+              to: ref('int_crm__accounts_current')
+              field: account_id
+
+      - name: store_number
+        description: >
+          Join key to the Iowa market data. NULL where the account carries no
+          store_number, which is why not_null is absent here. Still unique --
+          dbt's unique test ignores NULLs, so this asserts that no two accounts
+          claim the same Iowa store, which would double-count a store's market
+          evidence across two rows.
+        data_tests: [unique]
+
+      - name: has_market_match
+        description: >
+          True when the account's store_number resolved to a real Iowa store in
+          the scoring window. False means the account is ranked on CRM evidence
+          alone and sits in tier 4.
+        data_tests: [not_null]
+
+      - name: evidence_tier
+        description: >
+          The primary sort key -- what the market data proves, strongest first.
+          1 = buys imported gin at or above the premium_gin_materiality_floor
+          var; 2 = gin demand but no material imported volume (either token
+          imported gin below the floor, or none at all -- rank_rationale tells
+          them apart); 3 = matched but no gin traction; 4 = no market match.
+          The floor exists because without it a $65 imported-gin purchase
+          outranks $1,116 of gin spend on category alone.
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: [1, 2, 3, 4]
+              quote: false
+
+      - name: relationship_penalty
+        description: >
+          1 for Closed Lost accounts, which sort to the bottom of their own
+          tier; 0 otherwise. Controlled by the demote_closed_lost var.
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: [0, 1]
+              quote: false
+
+      - name: tier_measure
+        description: >
+          The dollar measure that decided this account's position WITHIN its
+          tier -- premium gin (t1), total gin (t2), total spend (t3), 0 (t4,
+          where open_pipeline_gbp breaks the order instead). Only ever compared
+          like-for-like, because evidence_tier sorts first.
         data_tests:
           - not_null
           - dbt_utils.accepted_range:
               min_value: 0
-              inclusive: false
+              inclusive: true
+
+      - name: premium_gin_dollars
+        description: >
+          Imported gin purchased over the scoring window. NULL where the account
+          has no matched Iowa store -- deliberately not zero-filled, because
+          "no market data" and "bought no imported gin" are different facts.
+        data_tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              inclusive: true
+
       - name: target_type
         description: >
-          net_new (no CRM record -- needs sourcing) or known_prospect (open
-          opportunity, a rep already owns it). Decides who does the work.
+          known_prospect (open opportunity, a rep already owns it),
+          previous_loss (Closed Lost -- demoted, not removed), or
+          no_opportunity (an account carrying no pipeline at all).
         data_tests:
           - not_null
           - accepted_values:
-              values: ["net_new", "known_prospect"]
+              values: ["known_prospect", "previous_loss", "no_opportunity"]
+
       - name: rank_rationale
-        description: Human-readable reason this store ranks where it does.
+        description: Human-readable reason this account ranks where it does.
         data_tests: [not_null]
+
       - name: is_top_target
         data_tests: [not_null]
