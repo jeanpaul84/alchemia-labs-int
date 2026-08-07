@@ -18,7 +18,7 @@ in `transform/dbt_project.yml` or a list in `extract/config.py` — all reversib
 | 9 | Currently, **store-number** cannot be obtained. | If the number could be obtained then it would be stored in the CRM data but it isn't so I built around that. This is a data-missing problem, not a ranking one. |
 | 10 | Previous losses are counted as **more work to be done**. | Penalized. A cold or warm approach is easier to perform than one that went badly in the past. |
 | 11 | There is **no minimum viable order size**. | Thameswood Distillers is looking to expand its business, all opportunities that bring company grow are on the table. |
-
+| 12 | **value_gbp** is deal kickstarter money. | **value_gbp** is money Thameswood will receive as a deal kickstarter. |
 
 
 ### What I would do differently with more time
@@ -26,4 +26,4 @@ in `transform/dbt_project.yml` or a list in `extract/config.py` — all reversib
 1. **Fix the match rate before touching the model.** 47 of 85 accounts (55%) cannot be scored — **40 carry no `store_number`**, 7 carry one absent from the market data. Populating that field moves them up the ladder *immediately, with no model change* and real-performance data of those accounts can be studied. If these values can't be obtained at all, an approach would be to use fuzzy matching (or use AI to match them using context and similarity).
 2. **Run YoY comparisons additionally.** This way stores can be compared across time with a monthly granularity. Even QoQ comparisons could be extracted.
 3. **Make the floor empirical** — a natural break or a percentile of stocking stores, instead of a round figure.
-
+4. **Create a Power BI dashboard:** rather than delivering an unpolished dashboard, I focused on correctly finalizing the notebook and logic.
